@@ -11,7 +11,7 @@ Our method is based on direct feature comparison of models fitted on different d
 models with the correct interpretation.
 In the associated article we demonstrate that our feature consistency analysis outperforms conventional 
 validation-based model selection methods when the goal is finding the model with the correct interpretation.  
-For mode information, see Genkin and Engel (2019) [#Genkin2019]_.
+For mode information, see Genkin and Engel (2020) [#Genkin2020]_.
 
 
 .. toctree::
@@ -28,5 +28,4 @@ For mode information, see Genkin and Engel (2019) [#Genkin2019]_.
 Reference
 ----------
 
-.. [#Genkin2019] Mikhail Genkin, Tatiana A. Engel (2019) Beyond generalization: Enhancing accurate interpretation of flexible models. `BioRxiv (2019), p. 808261. <https://www.biorxiv.org/content/10.1101/808261v1>`_
-
+.. [#Genkin2020] `Genkin, M., Engel, T.A. Moving beyond generalization to accurate interpretation of flexible models. Nat Mach Intell 2, 674–683 (2020). <https://www.nature.com/articles/s42256-020-00242-6>`_
