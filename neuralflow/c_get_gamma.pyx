@@ -1,3 +1,6 @@
+"""This is a part of neuralflow package.
+This source file contains cython implementation of G function.
+"""
 cimport numpy as np
 
 def getGamma0(np.ndarray[np.float64_t, ndim=2] G,
@@ -6,13 +9,12 @@ def getGamma0(np.ndarray[np.float64_t, ndim=2] G,
     np.ndarray[np.float64_t, ndim=2] alpha,
     np.ndarray[np.float64_t, ndim=1] btemp,
     double dt, int i):
-    """Gamma-function needed for gradient calculation, see Eq. (36) in Supplementary Information
+    """Gamma-function needed for gradient calculation, see Supplementary Information of Genkin et. al. papers.
     This is the most computationally intensive step implemented in Cython, which takes advantage of C performance  
     """
     
     
     cdef int j, k
-
     for j in range(Nv):
         for k in range(Nv):
             if j==k:

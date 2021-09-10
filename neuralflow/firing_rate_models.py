@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# This is a part of EnergyModel class
-# This source file contains template firing rate functions 
+"""This is a part of neuralflow package/EnergyModel class.
+This source file contains template firing rate functions."""
 
 
 
@@ -34,7 +34,7 @@ def custom(x,lambdafunc=None):
 
 def rectified_linear(x, r_slope=50.0, x_thresh=-1.0):
     """Rectified-linear firing rate model.
-    x, r_slope, x_thresh --> r(x, r_slope, x_thresh) = max[ r_slope*(x - x_thresh), 0 ]
+    r(x, r_slope, x_thresh) = max[ r_slope*(x - x_thresh), 0 ]
 
     Parameters
     ----------
@@ -55,7 +55,7 @@ def rectified_linear(x, r_slope=50.0, x_thresh=-1.0):
 
 def linear (x, r_slope = 50.0, r_bias = 2):
     """Linear firing rate model.
-    
+    r(x, r_slope, r_bias) = max[ r_slope * x + r_bias, 0 ]
 
     Parameters
     ----------
@@ -124,7 +124,7 @@ def sinus(x, bias=1000, amp=300, freq=np.pi):
     return np.maximum(amp*np.sin(freq*x)+bias,0)       
 
 def cos_square(x, amp=1000, freq=np.pi/2, bias=0):
-    """Cosine-squareed peq model FR with given amplitude and frequency
+    """Cosine-squareed model with a given amplitude and frequency
     
 
     Parameters

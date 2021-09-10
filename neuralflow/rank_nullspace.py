@@ -1,3 +1,5 @@
+"""This is a part of neuralflow package/EnergyModel class.
+This source file contains some auxilliary functions for PDE Solve."""
 import numpy as np
 from numpy.linalg import svd
 

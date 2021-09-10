@@ -21,7 +21,11 @@ PDESolve class
 Utility functions
 -----------------
 
-.. automodule:: neuralflow.utilities.feature_consistency
+.. automodule:: neuralflow.utilities.FC_stationary
     :members:
+
+.. automodule:: neuralflow.utilities.FC_nonstationary
+    :members:
+
 
 
