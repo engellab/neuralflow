@@ -108,16 +108,11 @@ def _generate_data(self, peq, p0, D, firing_rate_model, num_neuron, boundary_mod
             # Generate spikes from rate
             spikes[iCell, iTrial] = self._generate_inhom_poisson(time_bins[iTrial][0:rt.shape[0]], rate[iCell, iTrial])
 
-    # Calculate time of trial termination if needed
-    if not last_event_is_spike:
-        end_of_trial = np.zeros(num_trial)
-        for i in range(num_trial):
-            end_of_trial[i] = time_epoch[i][0] + deltaT * x[i].size
-    else:
-        end_of_trial = None
+    #Calculate actual time epoch with the actual end of trial times (not timeouts)
+    time_epoch_actual = [(time_epoch[i][0],time_bins[i][-1]+deltaT) for i in range(num_trial)]   
 
     # transform spikes to ISIs
-    data = self.transform_spikes_to_isi(spikes, time_epoch, last_event_is_spike, end_of_trial)
+    data = self.transform_spikes_to_isi(spikes, time_epoch_actual, last_event_is_spike)
 
     # record metadata
     metadata['last_event_is_spike'] = last_event_is_spike
@@ -125,7 +120,7 @@ def _generate_data(self, peq, p0, D, firing_rate_model, num_neuron, boundary_mod
     return data, time_bins, x, metadata
 
 
-def transform_spikes_to_isi(self, spikes, time_epoch, last_event_is_spike, end_of_trial):
+def transform_spikes_to_isi(self, spikes, time_epoch, last_event_is_spike):
     """Convert spike times to data array, which is a suitable format for optimization.
 
 
@@ -134,11 +129,10 @@ def transform_spikes_to_isi(self, spikes, time_epoch, last_event_is_spike, end_o
     spikes : numpy array (num_neuron,N), dtype=np.ndarray
         A sequence of spike times for each neuron on each trial. Each entry is 1D array of floats.
     time_epoch : list of tuples
-         List of N tuples, where N is the number of trials. Each tuple consists of the trial's start time and stop time in seconds.
+         List of N tuples, where N is the number of trials. Each tuple consists of the trial's start time and end time in seconds.
+         Note that the end time should be an actual end time, but not the timeout in the case of last_event_is_spike is True.
     last_event_is_spike : bool
         If true, trial termination time will not be recorded. Otherwise, trial termination time will be recorded.
-    end_of_trial : numpy array (N,), dtype=float
-        Trial terminatio time for each of the trials.
 
     Returns
     -------
@@ -179,7 +173,7 @@ def transform_spikes_to_isi(self, spikes, time_epoch, last_event_is_spike, end_o
             last_spike_time = all_spikes[-1]
 
         if not last_event_is_spike:
-            data[iTrial, 0][-1] = end_of_trial[iTrial] - last_spike_time
+            data[iTrial, 0][-1] = time_epoch[iTrial][1] - last_spike_time
         # assign indicies of neurons which fired, -1 to absorption event
         data[iTrial, 1] = all_spike_ind if last_event_is_spike else np.concatenate((all_spike_ind, [-1]))
     return data

@@ -103,7 +103,8 @@ def check_em_parameters(func):
             raise ValueError("D0 must be positive.")
 
         # Check Nv:
-        _check_integer(Nv, 1, "Nv is not integer of less than 1")
+        if Nv is not None:
+            _check_integer(Nv, 1, "Nv is not integer of less than 1")
 
         # Force verbose type to bool
         verbose = bool(verbose)
