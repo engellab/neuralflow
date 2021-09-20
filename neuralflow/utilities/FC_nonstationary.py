@@ -12,6 +12,78 @@ This module is optional and should be imported separately: from neuralflow.utili
 """
 import numpy as np
 
+def FeatureConsistencyAnalysis(data1, data2, em, iteration_indices, FC_stride):
+    """ Calculate JS divergence and feature complexities for two sequences of models data1 and data2.
+    
+    This function calculate JS(FC) curve for the case when only the model potential is optimized (and the rest of the parameters are fixed).
+    
+    Parameters
+    ----------
+    data1 : dictionary
+        Dictionary with peqs fitted on datasample 1 (the 1st sequence of fitted models).
+    data2 : dictionary
+        Dictionary with peqs fitted on datasample 2 (the second sequence of fitted models).
+    em : EnergyModel
+        An instance of energymodel class used for fitting (that contains common D, p0, and fr functions).
+    iteration_indices : numpy array
+        Indices of peqs in data1/data2 arrays which will be used for the analsys (to accelerate the computation, 
+        one may only consider the models at a subset of iterations, rather then all availible models).
+    FC_stride : int
+        This parameter determines how many models from the sequence 2 will be compared with the model from the sequence 1 at each level of 
+        feature complexity. The number of comparison at each level of feature complexity is 2*FC_stride+1.
+
+    Returns
+    -------
+    FC : numpy array
+        Feature complexities.
+    JS : numpy array
+        JS divergences between the two models at each level of feature complexity.
+    inds1 : numpy array
+        Indices of the models at each level of feature complexity in data1 array.
+    inds2 : numpy array
+        Indices of the models at each level of feature complexity in data1 array.
+
+    """
+    # Calculate feature complexities, eigenvalues and eigenvectors for the selected models
+    FCs_array1, lQ_array1, Qx_array1=FeatureComplexities(data1,em,iteration_indices)
+    FCs_array2, lQ_array2, Qx_array2=FeatureComplexities(data2,em,iteration_indices)
+
+    # Preallocate JS divergence array 
+    JS = np.zeros(FCs_array1.size)
+
+    # For the second sequence, mid_inds2 will contain index of the model for each feature complexity in data2.
+    inds2 = np.zeros_like(JS)
+
+    for i in range(FCs_array1.size):
+        # We only consider 1 model from the sequence of models optimized on data sample 1.
+        FC1_ind = i
+        
+        # Find the index of a model in the second sequence FCs_array2 that have the closest feature complexity  
+        # to the model from the first sequence 
+        ind_seq_2 = np.argmin(np.abs(FCs_array1[FC1_ind]-FCs_array2))
+        
+        # Select the indices of 2*FC_stride-1 models from the second sequence of models around the index ind_seq_2
+        FC2_ind = np.array(np.arange(max(0,ind_seq_2-FC_stride),min(FCs_array2.size-1,ind_seq_2+1+FC_stride)))    
+        
+        #Compute JSD for each pair of models selected from the sequences 1 and 2.
+        JS_cur = np.zeros(FC2_ind.size)
+        
+        for i2, ind2 in enumerate(FC2_ind):
+            peq_ind1=iteration_indices[FC1_ind]
+            peq_ind2=iteration_indices[ind2]
+            JS_cur[i2]=JS_divergence_tdp(data1['peqs'][...,peq_ind1],em.D_,em.p0_,
+                                            data2['peqs'][...,peq_ind2],em.D_,em.p0_,
+                                            em.w_d_, lQ_array1[FC1_ind,:], Qx_array1[FC1_ind,:], 
+                                            lQ_array2[ind2,:], Qx_array2[ind2,:],1,10)
+        
+        # Find the index of model2 in data2 
+        m2 = np.argmin(JS_cur)
+        inds2[i] = iteration_indices[FC2_ind[m2]]
+        JS[i] = JS_cur[m2]
+    # For the first sequence the indices of the models are equal to the selected iterations
+    inds1 = iteration_indices[np.arange(FCs_array1.size)]
+    return FCs_array1,  JS, inds1, inds2
+        
 
 def FeatureComplexity(em, peq=None, p0=None, D=None):
     """Calculate feature complexity for a single model specified by (peq,D,p0).

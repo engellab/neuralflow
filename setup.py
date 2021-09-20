@@ -17,7 +17,7 @@ if USE_CYTHON:
 
 setup(name='neuralflow',
       description='Modeling neural spiking activity with a contnuous latent Langevin dynamics',
-      version='2.0.1',
+      version='2.0.2',
       ext_modules=extensions,
       packages=["neuralflow", "neuralflow.utilities"],
       keywords='Neuroscience, Machine learning, Langevin modeling',

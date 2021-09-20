@@ -120,7 +120,7 @@ def _generate_data(self, peq, p0, D, firing_rate_model, num_neuron, boundary_mod
     return data, time_bins, x, metadata
 
 
-def transform_spikes_to_isi(self, spikes, time_epoch, last_event_is_spike):
+def transform_spikes_to_isi(self, spikes, time_epoch, last_event_is_spike=False):
     """Convert spike times to data array, which is a suitable format for optimization.
 
 

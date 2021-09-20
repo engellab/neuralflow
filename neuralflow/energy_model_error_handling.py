@@ -75,7 +75,7 @@ def check_em_parameters(func):
 
         # Check peq model
         if callable(peq_model):
-            self_var.peq_model_ = self_var.peq_model
+            self_var.peq_model_ = peq_model
         else:
             if peq_model['model'] in self_var._peq_model_types:
                 self_var.peq_model_ = lambda x, w: self_var._peq_model_types[peq_model['model']](

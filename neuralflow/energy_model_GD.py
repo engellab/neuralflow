@@ -52,15 +52,18 @@ def _GD_optimization(self, data, save, inference, optimization):
 
     Parameters
     ----------
-    data : numpy array (N,2), dtype=np.ndarray.
-        Spike data packed as numpy array of the size (N,2), where each elements is a 1D array.
-        N is the number of trials, and for each trial the first column contains inter spike intervals (ISIs) in seconds for all neurons,
-        and the second column contains the corresponding neuronal IDs (trial termination, if recorded, is indicated with -1).
-        data[i][0] - 1D array, a sequence of ISIs of all neurons for the trial i. The last entry can be time interval between the last spike
-        and trial termination time.
-        data[i][1] - 1D array, neuronal IDs of type int64 for the trial i. The last entry is -1 if the trial termination time is recorded.
-        Example: neuron 0 spiked at times 0.12, 0.15, 0.25, and neuron 1 spiked at times 0.05, 0.2. Trial 0 started at t=0 and ended at t=0.28.
-        In this case data[0][0]=np.array([0.05,0.07,0.03,0.05,0.05,0.03]), and data[0][1]=np.array([1,0,0,1,0,-1]).
+    data : dictionary 
+        Can include the following key-value pairs:
+        dataTR : numpy array (N,2), dtype=np.ndarray.
+            Training spike data packed as numpy array of the size (N,2), where each elements is a 1D array.
+            N is the number of trials, and for each trial the first column contains inter spike intervals (ISIs) in seconds for all neurons,
+            and the second column contains the corresponding neuronal IDs (trial termination, if recorded, is indicated with -1).
+            data[i][0] - 1D array, a sequence of ISIs of all neurons for the trial i. The last entry can be time interval between the last spike
+            and trial termination time.
+            data[i][1] - 1D array, neuronal IDs of type int64 for the trial i. The last entry is -1 if the trial termination time is recorded.
+            Example: neuron 0 spiked at times 0.12, 0.15, 0.25, and neuron 1 spiked at times 0.05, 0.2. Trial 0 started at t=0 and ended at t=0.28.
+            In this case data[0][0]=np.array([0.05,0.07,0.03,0.05,0.05,0.03]), and data[0][1]=np.array([1,0,0,1,0,-1]).
+        dataCV : validation data in the same format, optional
     save : dictionary
         Options for saving the results:
             path : str

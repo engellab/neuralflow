@@ -208,12 +208,22 @@ class EnergyModel(BaseEstimator):
         self.Integrate = self.pde_solve_.Integrate
 
         # initialize peq
-        self.peq_ = self.peq_model_(self.x_d_, self.w_d_)
+        if len(self.peq_model_.__code__.co_varnames)==2:
+            self.peq_ = self.peq_model_(self.x_d_, self.w_d_)
+        else:
+            self.peq_ = self.peq_model_(self.x_d_)
+        self.peq_/=np.sum(self.peq_*self.w_d_)
+        
         # initialize p0
         if self.p0_model is not None:
-            self.p0_ = self.p0_model_(self.x_d_, self.w_d_)
+            if len(self.p0_model_.__code__.co_varnames)==2:
+                self.p0_ = self.p0_model_(self.x_d_, self.w_d_)
+            else:
+                self.p0_ = self.p0_model_(self.x_d_)
+            self.p0_/=np.sum(self.p0_*self.w_d_)
         else:
             self.p0_ = None
+        
         # initialize D
         self.D_ = self.D0
         # initialize Firing Rates
@@ -224,5 +234,5 @@ class EnergyModel(BaseEstimator):
             self.num_neuron = num_neuron
         self.fr_ = np.empty((self.N, self.num_neuron), dtype='float64')
         for i in range(self.num_neuron):
-            self.fr_[:, i] = self.firing_model_[i](self.x_d_)
+            self.fr_[:, i] = np.maximum(self.firing_model_[i](self.x_d_),0)
         self.converged_ = False
