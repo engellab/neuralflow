@@ -116,11 +116,11 @@ def jump_spline2(x, w,
         sorted from the left to the right. Contains 5 values: the left boundary,
         the first maximum, the minimum, the second maximum and the right boundary.
         The default is [-1, -0.5, 0, 0.3, 1], which corresponds to the stepping
-        potential used in M. Genkin, O. Hughes, T.A. Engel paper.
+        potential used in M. Genkin, O. Hughes, T.A. Engel, Nat Commun 12, 5986 (2021).
     interp_y: numpy array (5,), dtype=float, or list
         The corresponding y-values of the potential at the points specified by
         interp_x. The default is [0, 4, 0, 1, -1], which corresponds to the stepping
-        potential used in M. Genkin, O. Hughes, T.A. Engel paper.
+        potential used in M. Genkin, O. Hughes, T.A. Engel paper, Nat Commun 12, 5986 (2021).
     bc_left: list
         A list that contains two tuples that specify boundary conditions for the potential
         on the left boundary. The format is the same as in bc_type argument of 

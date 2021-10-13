@@ -12,7 +12,7 @@ Our method is based on direct feature comparison of models fitted on different d
 models with the correct interpretation.
 In the associated article we demonstrate that our feature consistency analysis outperforms conventional 
 validation-based model selection methods when the goal is finding the model with the correct interpretation.  
-For mode information, see Genkin and Engel (2020) [#Genkin2020]_, Genkin, Hughes and Engel (2020) [#Genkin2020Preprint]_.
+For mode information, see Genkin and Engel (2020) [#Genkin2020]_, Genkin, Hughes and Engel (2021) [#Genkin2021]_.
 
 .. toctree::
    :maxdepth: 2
@@ -30,4 +30,4 @@ References
 
 .. [#Genkin2020] `Genkin, M., Engel, T.A. Moving beyond generalization to accurate interpretation of flexible models. Nat Mach Intell 2, 674–683 (2020). <https://www.nature.com/articles/s42256-020-00242-6>`_
 
-.. [#Genkin2020Preprint] `Genkin, M., Hughes, O. and Engel, T.A. Learning non-stationary Langevin dynamics from stochastic observations of latent trajectories. arXiv preprint arXiv:2012.14944 (2020). <https://arxiv.org/abs/2012.14944>`_
+.. [#Genkin2021] `Genkin, M., Hughes, O. and Engel, T.A. Learning non-stationary Langevin dynamics from stochastic observations of latent trajectories. Nat Commun 12, 5986 (2021). <https://www.nature.com/articles/s41467-021-26202-1>`_

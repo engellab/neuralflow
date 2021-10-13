@@ -7,7 +7,7 @@ FC_nonstationary module
 --------------------------------------------------
 
 Below are the complimentary functions for Model selection based on feature complexity analysis for non-stationary data.
-See Genkin, Hughes, Engel, arxiv 2020 paper for details.
+See Genkin, Hughes, Engel, Nat Commun 12, 5986 (2021) paper for details.
 This module is optional and should be imported separately: from neuralflow.utilities import FC_nonstationary.
 """
 import numpy as np

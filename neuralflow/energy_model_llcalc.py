@@ -11,7 +11,7 @@ from copy import deepcopy
 
 def _get_loglik_data(self, data, metadata=None, peq=None, rho0=None, D=None, fr=None, mode='loglik', grad_list=None, EV_solution=None):
     """Calculates loglikelihood and/or gradients
-    See Supplementary Information for M. Genkin, T. A. Engel, Nat Mach Intell 2, 674–683 (2020), and M. Genkin, O. Hughes, T. A. Engel ArXiv (2020) papers.
+    See Supplementary Information for M. Genkin, T. A. Engel, Nat Mach Intell 2, 674–683 (2020), and M. Genkin, O. Hughes, T. A. Engel, Nat Commun 12, 5986 (2021).
 
 
     Parameters

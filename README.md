@@ -8,9 +8,9 @@ Quick installation: ```pip install git+https://github.com/engellab/neuralflow```
 
 The source code for the following publications:
 
-1) **Genkin, M., Hughes, O. and Engel, T.A., 2020. Learning non-stationary Langevin dynamics from stochastic observations of latent trajectories. arXiv preprint arXiv:2012.14944 (2020)**.
+1) **Genkin, M., Hughes, O. and Engel, T.A., 2020. Learning non-stationary Langevin dynamics from stochastic observations of latent trajectories. Nat Commun 12, 5986 (2021)**.
 
-**Link:** https://arxiv.org/abs/2012.14944
+**Link:** https://rdcu.be/czqGP
 
 2) **Genkin, M., Engel, T.A. Moving beyond generalization to accurate interpretation of flexible models. Nat Mach Intell 2, 674–683 (2020)**.  
 
