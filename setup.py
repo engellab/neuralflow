@@ -31,6 +31,6 @@ setup(name='neuralflow',
           'matplotlib',
           'scipy',
           'tqdm',
-          'sklearn',
+          'scikit-learn',
       ],
       zip_safe=False)
