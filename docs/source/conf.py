@@ -18,10 +18,12 @@ import sys
 import os
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
-     sys.path.append('../../')    
+     sys.path.append('../..')
+     sys.path.append('..')  
 else:
-    sys.path.insert(0, os.path.abspath('../../'))
-    sys.path.insert(0, os.path.abspath('../'))
+    #pass
+    sys.path.insert(0, os.path.abspath('../..'))
+    #sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- Project information -----------------------------------------------------
@@ -43,13 +45,15 @@ release = '1.0.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'numpydoc', 'nbsphinx', 'sphinx.ext.mathjax', 'sphinx.ext.napoleon']
-
+html_theme =  'sphinx_rtd_theme'
 napoleon_google_docstring = True
 napoleon_use_param = False
 napoleon_use_ivar = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+#numpydoc_show_class_members = False
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:

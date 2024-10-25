@@ -1,4 +1,7 @@
-#Additional requirements for project compilation at readthedocs 
+#Additional requirements for project compilation at readthedocs
 numpydoc
 nbsphinx
+sphinx-rtd-theme
+Cython
+numpy
 -e .

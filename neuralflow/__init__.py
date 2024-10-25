@@ -1,17 +1,16 @@
-
 """
 Import packages
 """
 
-from .PDE_Solve import PDESolve 
-from .energy_model import EnergyModel
+from .data_generation import SyntheticData
 from . import firing_rate_models
+from .gradients import Grads
+from .grid import GLLgrid
+from .model import model
+from .optimization import Optimization
+from .PDE_Solve import PDESolve
 from . import peq_models
-from . import c_get_gamma
+from .spike_data import SpikeData
 
-
-
-__all__ = ['EnergyModel', 'firing_rate_models', 'peq_models', 'c_get_gamma', 'PDESolve']
-
-
-
+__all__ = ['SyntheticData', 'firing_rate_models', 'Grads', 'GLLgrid', 'model',
+           'Optimization', 'PDESolve', 'peq_models', 'SpikeData']

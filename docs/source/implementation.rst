@@ -1,31 +1,65 @@
 Implementation
 ==============
 
-.. _Energymodel_class:
 
-EnergyModel class
------------------
+Core classes
+------------
 
-.. autoclass:: neuralflow.EnergyModel
+.. autoclass:: neuralflow.model.model
    :members: 
-   :exclude-members: get_params, set_params
+   
+.. autoclass:: neuralflow.grid.GLLgrid
+   :members: 
 
-PDESolve class
----------------
+.. autoclass:: neuralflow.spike_data.SpikeData
+   :members: 
 
-.. autoclass:: neuralflow.PDESolve
-    :members:
+Optimization routines
+---------------------
 
-.. _Utilities:
+.. autoclass:: neuralflow.optimization.Optimization
+   :members: 
+   
+.. autoclass:: neuralflow.base_optimizer.adam_opt
+   :members: 
+   
+.. autoclass:: neuralflow.base_optimizer.gd_opt
+   :members: 
+   
+.. autoclass:: neuralflow.gradients.Grads
+   :members: 
+   
+.. autoclass:: neuralflow.PDE_Solve.PDESolve
+   :members: 
+   
+Predefined peq models
+---------------------
 
-Utility functions
------------------
+.. automodule:: neuralflow.peq_models
+   :members:
+   
+Predefined firing rate models
+-----------------------------
 
-.. automodule:: neuralflow.utilities.FC_stationary
-    :members:
+.. automodule:: neuralflow.firing_rate_models
+   :members:
+   
+Feature complexity analysis
+---------------------------
 
-.. automodule:: neuralflow.utilities.FC_nonstationary
-    :members:
+.. autoclass:: neuralflow.feature_complexity.fc_base.FC_tools
+   :members: 
+
+   
+Data generation from Langevin dynamics
+--------------------------------------
+
+.. autoclass:: neuralflow.data_generation.SyntheticData
+   :members: 
 
 
+Other modules and classes
+---------------------------
 
+.. automodule:: neuralflow.viterbi
+   :members:

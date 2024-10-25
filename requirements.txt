@@ -1,4 +1,9 @@
-#Additional requirements for project compilation at readthedocs 
+# Additional requirements for project compilation at readthedocs 
 numpydoc
 nbsphinx
--e .
+
+# Additional requirements for Windows:
+Microsoft Visual C++ 14.0 or greater
+
+# Additional requirements for Mac:
+VS code with C++

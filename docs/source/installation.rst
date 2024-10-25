@@ -28,11 +28,17 @@ Install the package from a local copy::
 
     pip install .
     
-After that, you should be able to run ``example/Example1.ipynb`` and ``example/Example2.ipynb``
+After that, you should be able to run examples in  ``example`` folder.
+If you have issues with Cython extension, and want to use precomplied .c instead, open setup.py and change line 7 to USE_CYTHON = 0
 
-Install C extensions from pyx files
---------------------------
-By default, C extensions are installed from .c file(s). These .c files were generated from .pyx files with cython.
-If you want to install the package's extensions from the original pyx files, change line 6 in setup.py to ``USE_CYTHON = 1``. In this case, 
-`cython` package is required for the installation (not included in the requirements list, so you will need to run ``pip install cython``).
- 
+
+CUDA support
+------------
+
+Optimization can be performed on CUDA-enabled GPU. For GPU support, cupy
+package has to be installed on a machine with CUDA-enabled GPU. The package
+was tested with cupy version 12.2.0. Note that double-precision computations
+are absolutely necessary for our framework, so optimization benefits from
+GPU acceleration only if scientific grade GPU (e.g. Tesla V100) is used. A
+gaming GPU perforamnce is approximately the same as CPU perfromance, since
+gaming GPUs do not have many double-precision multiprocessors.
