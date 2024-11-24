@@ -291,7 +291,7 @@ class GLLgrid():
     def _check_inputs(self):
         if self.xend <= self.xbegin:
             raise ValueError('x interval length is <= 0')
-        if not isinstance(self.Np, (int, np.integer)) or self.Np <= 2:
-            raise ValueError('Np is not int or less than 2')
-        if not isinstance(self.Ne, (int, np.integer)) or self.Ne <= 1:
+        if not isinstance(self.Np, (int, np.integer)) or self.Np < 3:
+            raise ValueError('Np is not int or less than 3')
+	if not isinstance(self.Ne, (int, np.integer)) or self.Ne < 1:
             raise ValueError('Ne is not int or less than 1')
