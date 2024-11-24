@@ -123,7 +123,7 @@ class SpikeData:
                 self.cuda.cp.asarray(seq[0], dtype='float64')
             )
             self.cuda_var.data[iTrial].append(
-                self.cuda.cp.asarray(seq[1], dtype=int)
+                self.cuda.cp.asarray(seq[1], dtype='int32')
             )
 
     def trial_average_fr(self):
