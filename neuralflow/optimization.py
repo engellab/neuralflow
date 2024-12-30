@@ -14,7 +14,8 @@ from tqdm import tqdm
 from copy import deepcopy
 from neuralflow.base_optimizer import adam_opt, gd_opt
 from neuralflow.settings import (
-    _cmin, _cmax, _dmin, _dmax, implemented_optimizers
+    _cmin, _cmax, _dmin, _dmax, implemented_optimizers,
+    MINIMUM_D
 )
 
 logger = logging.getLogger(__name__)
@@ -634,7 +635,7 @@ class Optimization:
             # Direct update
             model_params.D[model_num] = model_params.D[model_num] - gd_update
             model_params.D[model_num] = np.maximum(
-                model_params.D[model_num], 0.01)
+                model_params.D[model_num], MINIMUM_D)
         elif param == 'F0':
             # Compute p0 from F0, update F0, compute new p0 and rho0
             F0 = model.force_from_peq(model_params.p0[model_num], self.device)

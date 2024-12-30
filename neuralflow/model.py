@@ -10,6 +10,7 @@ import numbers
 from neuralflow.peq_models import peq_model_types_
 from neuralflow.firing_rate_models import firing_model_types_
 import logging
+from neuralflow.settings import MINIMUM_PEQ
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,7 @@ class model:
             self.peq = peq[np.newaxis, :]
         else:
             self.peq = peq
+        self.peq = np.maximum(self.peq, MINIMUM_PEQ)
         if len(p0.shape) == 1:
             self.p0 = p0[np.newaxis, :]
         else:
@@ -422,9 +424,11 @@ class model:
         if device == 'CPU' or device is None:
             peq = np.exp(self.grid.AD_d.dot(F))
             peq /= np.sum(peq*self.grid.w_d)
+            peq = np.maximum(peq, MINIMUM_PEQ)
         else:
             peq = self.cuda.cp.exp(self.grid.cuda_var.AD_d.dot(F))
             peq /= self.cuda.cp.sum(peq*self.grid.cuda_var.w_d)
+            peq = self.cuda.cp.maximum(peq, MINIMUM_PEQ)
         return peq
 
     def force_from_peq(self, peq, device=None):

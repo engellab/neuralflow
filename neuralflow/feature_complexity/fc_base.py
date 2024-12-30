@@ -152,7 +152,7 @@ class FC_tools:
                     if with_Ds:
                         D = data['D'][i][min(k, num_D_models - 1)]
                     else:
-                        D = Ds[min(k, num_peq_models - 1)]
+                        D = Ds[min(k, num_D_models - 1)]
                     Fs = D / 4 * Force ** 2
                     # Compute eigenvalues and eigenvectors of H0 operator, i.e.
                     # completely ignoring spikes, as we are only interested in
