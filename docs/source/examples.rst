@@ -3,7 +3,7 @@
 Examples
 ========
 
-Here we provide examples from each of our papers  [#Genkin2020]_, [#Genkin2021]_, and [#Genkin2023]_. These examples can also be accessed with Jupiter notebook from our `GitHub repository <https://github.com/engellab/neuralflow/>`_ .
+Here we provide examples from each of our papers  [#Genkin2020]_, [#Genkin2021]_, and [#Genkin2023]_. These examples can also be accessed with Jupyter Notebook from our `GitHub repository <https://github.com/engellab/neuralflow/>`_ .
 
 **************************************************************************
 Moving beyond generalization to accurate interpretation of flexible models
@@ -23,9 +23,9 @@ The second example demonstrates our feature consistency method for model selecti
 Learning non-stationary Langevin dynamics from stochastic observations of latent trajectories
 *********************************************************************************************
 
-The first example generates synthetic data from the ramping dynamics, and optimizes the model potential on this data. Also the importance of various non-stationary components for accurate model inference is demonstrated. It reproduces Figures 2,3 in the main text [#Genkin2020preprint]_. 
+The first example generates synthetic data from the ramping dynamics, and optimizes the model potential on this data. Also the importance of various non-stationary components for accurate model inference is demonstrated. It reproduces Figures 2 and 3 in the main text [#Genkin2020preprint]_. 
 The second example generates two synthetic datasets from ramping and stepping dynamics, and uses
-this data to infer the model potentials. It also infers the model potential, the initial distribution of the latent states, and the noise magnitude from data generated from the ramping dynamics.  It reproduces Figure 4 in the main text [#Genkin2020preprint]_.
+this data to infer the model potentials. It also infers the model potential, the initial distribution of the latent states and the noise magnitude from data generated using the ramping dynamics.  It reproduces Figure 4 in the main text [#Genkin2020preprint]_.
 The third example demonstrates feature consistency analysis for model selection for the case of non-stationary data. It reproduces Figure 5a-c in the main text [#Genkin2020preprint]_.
 
 .. toctree::
@@ -39,16 +39,16 @@ The third example demonstrates feature consistency analysis for model selection 
 The dynamics and geometry of choice in premotor cortex
 *********************************************************************************************
 
-The first example fits single-neuron model from PMd data and selects an optimal
+The first example fits a single-neuron model to PMd data and selects an optimal
 model using feature consistency analysis, see Figure 3 in [#Genkin2023]_.
-The second example fits population model from PMd data and selects an optimal
+The second example fits a population model to PMd data and selects an optimal
 model using feature consistency analysis, see Figure 4 in [#Genkin2023]_.
 
 .. toctree::
     :maxdepth: 2
 
-    examples/2024_the_dynamics_and_geomerty/Example1.ipynb
-    examples/2024_the_dynamics_and_geomerty/Example2.ipynb
+    examples/2024_the_dynamics_and_geometry/Example1.ipynb
+    examples/2024_the_dynamics_and_geometry/Example2.ipynb
     
     
 References

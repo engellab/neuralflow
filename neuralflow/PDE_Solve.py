@@ -52,8 +52,8 @@ class PDESolve:
         default is False.
     """
 
-    # List of availible methods
-    _availible_BCs = ['Dirichlet', 'Neumann', 'Robin']
+    # List of available methods
+    _available_BCs = ['Dirichlet', 'Neumann', 'Robin']
 
     def __init__(self, xbegin=-1.0, xend=1.0, Np=8, Ne=64,
                  BoundCond={'leftB': 'Dirichlet', 'rightB': 'Dirichlet'},
@@ -207,9 +207,9 @@ class PDESolve:
         -------
         lQ : numpy array (Nv,), dtype=float
             The least Nv eigenvalues for the eigenvalue problem of H0 operator.
-        QxOrig : numpy array (Nv,Nv), dtype=float
+        QxOrig : numpy array (N,Nv), dtype=float
             The corresponding scaled eigenvectors
-        Qx : numpy array (Nv,Nv), dtype=float
+        Qx : numpy array (N,Nv), dtype=float
             The eigenvectors of EV problem of H0 operator (only for 'h0' and
             'hdark' modes).
         lQd: numpy array (Nv,), dtype=float
@@ -438,7 +438,7 @@ class PDESolve:
             for bc in ['leftB', 'rightB']:
                 if (
                     bc not in self.BoundCond or
-                    self.BoundCond[bc] not in PDESolve._availible_BCs
+                    self.BoundCond[bc] not in PDESolve._available_BCs
                 ):
                     raise ValueError('Incorrect Boundary Conditions')
 

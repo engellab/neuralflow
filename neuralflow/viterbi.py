@@ -86,7 +86,7 @@ class Viterbi:
         # the boundary at all times. I fix it by setting a large margin where
         # the probability is forced to be zero.
         # Ideally, the margin for reflective boundary should be zero
-        margin_ref = grid.N//20
+        margin_ref = grid.N//30
 
         # Qxd is transformation matrix from H-basis to SEM, QxOrig is the same
         # but with scaled EVs
