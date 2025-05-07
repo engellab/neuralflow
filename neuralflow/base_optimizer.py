@@ -181,7 +181,7 @@ class optimizer():
             if ds.dformat != 'ISIs':
                 logger.warning('Converting data into ISI format')
                 ds.change_format('ISIs')
-            if self.device == 'GPU' and not hasattr(ds, 'cuda_var'):
+            if self.device == 'GPU' and not hasattr(ds.cuda_var, 'data'):
                 logger.info('Moving data to GPU')
                 ds.to_GPU()
         return data

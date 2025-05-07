@@ -105,7 +105,7 @@ class SpikeData:
         """
         if not self.with_cuda:
             raise ValueError(
-                'Initialize with with_cuda = True for GPU support'
+                'Initialize spikedata with with_cuda = True for GPU support'
             )
 
         if self.dformat == 'spiketimes':

@@ -80,7 +80,7 @@ def PerformTest(Ne, Np, Nv, name, with_cuda):
 
     # Initialize class instance
     solver = PDESolve(
-        xbegin, xend, Np, Ne, BoundCond=BC, Nv=Nv, with_cuda=True
+        xbegin, xend, Np, Ne, BoundCond=BC, Nv=Nv, with_cuda=with_cuda
     )
 
     # Obtain peq, boundary conditions, exact solution

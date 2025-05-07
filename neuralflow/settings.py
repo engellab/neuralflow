@@ -36,5 +36,5 @@ implemented_optimizers = ['ADAM', 'GD']
 # Line search hyperparams
 _cmin = 1
 _cmax = 150
-_dmin = 0.01
+_dmin = 0.02
 _dmax = 10

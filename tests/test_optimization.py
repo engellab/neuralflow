@@ -19,7 +19,6 @@ from copy import deepcopy
 import pathlib
 from pkg_resources import working_set
 GPU_support = any([pkg.key.startswith('cupy') for pkg in working_set])
-GPU_support = False
 logger = logging.getLogger(__name__)
 
 
@@ -71,8 +70,6 @@ class TestOptmization(unittest.TestCase):
                         f'data using {bm} boundary mode')
             data, _, _ = dg.generate_data(0, 1, num_training_trials, 0)
             cls.dataTR[bm] = SpikeData(data, 'ISIs', with_cuda=GPU_support)
-            if GPU_support:
-                cls.dataTR[bm].to_GPU()
             if with_cv:
                 logger.info(f'Generating {num_val_trials} trials of validation'
                             f' data using {bm} boundary mode')
@@ -80,8 +77,6 @@ class TestOptmization(unittest.TestCase):
                 cls.dataCV[bm] = SpikeData(
                     dataCV, 'ISIs', with_cuda=GPU_support
                 )
-                if GPU_support:
-                    cls.dataCV[bm].to_GPU()
 
         # optimization
         cls.optimizers = ['ADAM', 'GD']

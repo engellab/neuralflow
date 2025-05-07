@@ -69,7 +69,7 @@ class Optimization:
 
         # Need deepcopy to fix the parameters in place without modifying the
         # originals. Data will not be deepcopied as this can be a waste of
-        # resources.
+        # resources if the data is too large.
         init_model = deepcopy(init_model)
         opt_options = deepcopy(opt_options)
         line_search_options = deepcopy(line_search_options)
@@ -84,6 +84,7 @@ class Optimization:
             logger.info(f'Impl. optimizers: {implemented_optimizers}')
             raise ValueError(f'Unknown optimizer {optimizer_name}')
         self.optimizer_name = optimizer_name
+
         # Optimizer object - see base_optimization class
         self.optimizer = opt_fun.initialize(
             dataTR, init_model, opt_options, line_search_options,

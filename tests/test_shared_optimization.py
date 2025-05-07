@@ -142,8 +142,6 @@ class TestSharedOptimization(unittest.TestCase):
                     0, 1, num_training_trials[samp], samp)
                 cls.dataTR[bm].append(
                     SpikeData(data, 'ISIs', with_cuda=GPU_support))
-                if GPU_support:
-                    cls.dataTR[bm][-1].to_GPU()
                 if with_cv:
                     logger.info(
                         f'Generating {num_val_trials[0]} trials of validation '
@@ -152,9 +150,8 @@ class TestSharedOptimization(unittest.TestCase):
                     dataCV, _, _ = dg.generate_data(
                         0, 1, num_val_trials[samp], samp)
                     cls.dataCV[bm].append(
-                        SpikeData(dataCV, 'ISIs', with_cuda=GPU_support))
-                    if GPU_support:
-                        cls.dataCV[bm][-1].to_GPU()
+                        SpikeData(dataCV, 'ISIs', with_cuda=GPU_support)
+                        )
 
         # optimization
         cls.optimizers = ['ADAM', 'GD']

@@ -47,8 +47,10 @@ model using feature consistency analysis, see Figure 4 in [#Genkin2023]_.
 .. toctree::
     :maxdepth: 2
 
-    examples/2024_the_dynamics_and_geometry/Example1.ipynb
-    examples/2024_the_dynamics_and_geometry/Example2.ipynb
+    examples/2024_the_dynamics_and_geometry/Example1_single_neuron_optimization.ipynb
+    examples/2024_the_dynamics_and_geometry/Example2_population_optimization.ipynb
+    examples/2024_the_dynamics_and_geometry/Example3_gpu_optimization.ipynb
+    examples/2024_the_dynamics_and_geometry/Example4_viterbi.ipynb
     
     
 References
