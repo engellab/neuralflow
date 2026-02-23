@@ -60,7 +60,8 @@ class Grads:
         get_grad_data
 
         """
-
+        # num_neuron is deprecated - now obtained dynamically from model.get_num_neurons(model_num)
+        # Kept for backward compatibility but not used
         self.num_neuron = num_neuron
         self.with_trial_end = with_trial_end
 
@@ -232,8 +233,8 @@ class Grads:
         # Nv is the dimensionality of H/H0 basis. Usually N - 2
         Nv = self.pde_solver.Nv
 
-        # Number of neurons
-        num_neuron = self.num_neuron
+        # Number of neurons - get dynamically from model based on condition
+        num_neuron = model.get_num_neurons(model_num)
 
         # Whether or not we have absorption in the end of the trial
         if self.boundary_mode == 'absorbing':
@@ -342,7 +343,7 @@ class Grads:
 
         if 'Fr' in self.grad_list or 'C' in self.grad_list:
             GI10 = np.zeros_like(GI1)
-            for i in range(self.num_neuron):
+            for i in range(num_neuron):
                 GI10[:, :, i] = Qd.dot(GI1[:, :, i]).dot(Qd.T)
             GI20 = Qd.dot(G).dot(Qd.T)
 
@@ -420,8 +421,8 @@ class Grads:
         # Nv is the dimensionality of H/H0 basis. Usually N - 2
         Nv = self.pde_solver.Nv
 
-        # Number of neurons
-        num_neuron = self.num_neuron
+        # Number of neurons - get dynamically from model based on condition
+        num_neuron = model.get_num_neurons(model_num)
 
         # Number of threads/blocks needed for running custom CUDA kernels
         threads = self.cuda.num_threads_

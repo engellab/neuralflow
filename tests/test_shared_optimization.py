@@ -49,7 +49,7 @@ class TestSharedOptimization(unittest.TestCase):
         """
 
         # Initialize pde solver and energy model class
-        cls.boundary_mode = ['reflecting', 'absorbing']
+        cls.boundary_mode =  ['reflecting', 'absorbing']
 
         # Feel free to change
         cls.pde_solve_params = {'xbegin': -1, 'xend': 1, 'Np': 8, 'Ne': 16}
@@ -104,14 +104,26 @@ class TestSharedOptimization(unittest.TestCase):
         }
         em_gt_2 = model.new_model(**gt_param_2, grid=cls.grid_cpu)
 
-        # Create a model from these two models
+        # Create a model from these two models using condition_mapping
+        cls.condition_mapping_2cond = {
+            'num_conditions': 4,
+            'num_peq': 2,
+            'num_p0': 2,
+            'num_D': 2,
+            'num_fr': 6,  
+            'peq_indices': [0, 1, 0, 1],
+            'p0_indices': [0, 0, 1, 1],
+            'D_indices': [0, 1, 1, 1],
+            'fr_indices': [[0, 1, 2], [3, 4, 5], [1], [0, 2, 3, 5]]  # 3 neurons per condition
+        }
+        
         cls.em_gt_cpu = model(
             np.concatenate((em_gt_1.peq, em_gt_2.peq), axis=0),
             np.concatenate((em_gt_1.p0, em_gt_2.p0), axis=0),
             np.concatenate((em_gt_1.D, em_gt_2.D), axis=0),
             np.concatenate((em_gt_1.fr, em_gt_2.fr), axis=0),
-            params_size={'peq': 2, 'D': 2, 'fr': 2, 'p0': 2},
-            grid=cls.grid_cpu
+            cls.condition_mapping_2cond,
+            cls.grid_cpu
         )
         if GPU_support:
             cls.em_gt_gpu = model(
@@ -119,19 +131,19 @@ class TestSharedOptimization(unittest.TestCase):
                 np.concatenate((em_gt_1.p0, em_gt_2.p0), axis=0),
                 np.concatenate((em_gt_1.D, em_gt_2.D), axis=0),
                 np.concatenate((em_gt_1.fr, em_gt_2.fr), axis=0),
-                params_size={'peq': 2, 'D': 2, 'fr': 2, 'p0': 2},
-                grid=cls.grid_gpu,
+                cls.condition_mapping_2cond,
+                cls.grid_gpu,
                 with_cuda=True
             )
 
         # Synthetic data generation
         with_cv = True
-        num_training_trials = [50, 30]
-        num_val_trials = [max(el // 10, 3) for el in num_training_trials]
+        num_training_trials = [50, 30, 70, 20]
+        num_val_trials = [max(el // 10, 2) for el in num_training_trials]
         cls.dataTR = {bm: [] for bm in cls.boundary_mode}
         cls.dataCV = {bm: [] for bm in cls.boundary_mode}
 
-        for samp in range(2):
+        for samp in range(len(num_training_trials)):
             for bm in cls.boundary_mode:
                 dg = SyntheticData(cls.em_gt_cpu, bm)
                 logger.info(
@@ -155,7 +167,7 @@ class TestSharedOptimization(unittest.TestCase):
 
         # optimization
         cls.optimizers = ['ADAM', 'GD']
-        cls.opt_params = {'max_epochs': 20, 'mini_batch_number': 10}
+        cls.opt_params = {'max_epochs': 20, 'mini_batch_number': 2}
         cls.opt_params_ls = {'max_epochs': 1, 'mini_batch_number': 1}
 
         cls.ls_options_simultaneous_inference = {
@@ -196,8 +208,9 @@ class TestSharedOptimization(unittest.TestCase):
         cls.res_fold = 'unit_test_shared_opt_results'
         pathlib.Path(cls.res_fold).mkdir(parents=True, exist_ok=True)
 
-        cls.ll_gt = {bm: [None]*2 for bm in cls.boundary_mode}
-        cls.ll_gt_cv = {bm: [None]*2 for bm in cls.boundary_mode}
+        num_conditions = cls.condition_mapping_2cond['num_conditions']
+        cls.ll_gt = {bm: [None]*num_conditions for bm in cls.boundary_mode}
+        cls.ll_gt_cv = {bm: [None]*num_conditions for bm in cls.boundary_mode}
 
         # Counter of the test number
         cls.test_num = 0
@@ -235,10 +248,32 @@ class TestSharedOptimization(unittest.TestCase):
                     'learning_rate': lr
                 }
 
+                # Create init model with condition_mapping for 2 conditions
+                condition_mapping_init = self.condition_mapping_2cond
+                
+                # Duplicate the fr models for 2 conditions (3 neurons each)
+                init_fr_model = [
+                    {"model": "linear", "params": {"slope": -5, "bias": 15}},
+                    {"model": "linear", "params": {"slope": 10, "bias": 100}},
+                    {"model": "linear", "params": {"slope": 10, "bias": 100}},
+                    {"model": "linear", "params": {"slope": -5, "bias": 15}},
+                    {"model": "linear", "params": {"slope": 10, "bias": 100}},
+                    {"model": "linear", "params": {"slope": 10, "bias": 100}},
+                ]
+                
                 init_model = model.new_model(
-                    **self.initial_guess,
+                    peq_model=[
+                        {'model': 'uniform', 'params': {}},
+                        {'model': 'uniform', 'params': {}}
+                    ],
+                    p0_model=[
+                        {'model': 'uniform', 'params': {}},
+                        {'model': 'uniform', 'params': {}}
+                    ],
+                    D=[3, 3],
+                    fr_model=init_fr_model,
                     grid=self.grid_gpu if with_cuda else self.grid_cpu,
-                    params_size=self.params_size,
+                    condition_mapping=condition_mapping_init,
                     with_cuda=with_cuda
                 )
 
@@ -259,7 +294,7 @@ class TestSharedOptimization(unittest.TestCase):
 
                 # Compute ground-truth loglik
                 em_gt = self.em_gt_gpu if with_cuda else self.em_gt_cpu
-                for samp in range(2):
+                for samp in range(self.condition_mapping_2cond['num_conditions']):
                     if self.ll_gt[bm][samp] is None:
                         self.ll_gt[bm][samp] = (
                             optimization.optimizer.gradient.get_grad_data(

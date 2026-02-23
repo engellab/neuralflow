@@ -57,7 +57,7 @@ class TestGradients(unittest.TestCase):
             ],
             grid=cls.grid,
         )
-        cls.num_neurons = cls.em.fr.shape[2]
+        cls.num_neurons = cls.em.num_neuron
 
         # Generate data for absorbing and reflecting modes
         cls.data = []
@@ -363,9 +363,12 @@ class TestGradients(unittest.TestCase):
         C2 = ConvexSum(CLeft, CRight, self.theta2)
 
         # Calculate the corresponding firing rates:
-        fr = self.em.fr[0]/self.em.fr[0][0, :]*C
-        fr_1 = self.em.fr[0]/self.em.fr[0][0, :]*C1
-        fr_2 = self.em.fr[0]/self.em.fr[0][0, :]*C2
+        # fr now has shape (num_fr, N), so we use fr.T which has shape (N, num_fr)
+        # fr for condition 0 (get_params returns (N, num_neurons))
+        fr_0 = self.em.get_params(0)[3]  # shape (N, num_neurons)
+        fr = fr_0 / fr_0[0, :] * C
+        fr_1 = fr_0 / fr_0[0, :] * C1
+        fr_2 = fr_0 / fr_0[0, :] * C2
 
         if with_cuda:
             grid = self.grid_with_cuda

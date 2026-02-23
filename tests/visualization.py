@@ -30,10 +30,11 @@ def PlotResults(title, params_to_opt, nresults, results, em_gt, ll_gt,
             f', shared_params={[p for p in params_to_opt if param_size[p]==1]}'
         )
     num_plots = sum(param_size.values()) + n_samples
-    num_cols = num_plots // 3 + (num_plots % 3 > 0)
+    num_rows = 4
+    num_cols = num_plots // num_rows + (num_plots % num_rows > 0)
 
     fig = plt.figure(figsize=(25, 5*num_cols))
-    gs = gridspec.GridSpec(num_cols, 3, wspace=0.5, hspace=0.8)
+    gs = gridspec.GridSpec(num_cols, num_rows, wspace=0.5, hspace=0.8)
 
     if nresults == 1:
         title += ' by line search'
@@ -44,7 +45,7 @@ def PlotResults(title, params_to_opt, nresults, results, em_gt, ll_gt,
     subplot_num = -1
     for samp in range(n_samples):
         subplot_num += 1
-        ax = plt.subplot(gs[subplot_num//3, subplot_num % 3])
+        ax = plt.subplot(gs[subplot_num//num_rows, subplot_num % num_rows])
         iters_to_plot = results['iter_num'].copy().astype('float')
 
         # Log scale does not disply zero, hack it
@@ -89,10 +90,13 @@ def PlotResults(title, params_to_opt, nresults, results, em_gt, ll_gt,
             )
 
         iter_to_plot = (
+            np.unique(
             np.linspace(0, len(results['iter_num']) - 1, nresults+1)
             .round()
+            )
             .astype(int)
         )
+        nresults = min(nresults, len(iter_to_plot)-1)
         for i in range(nresults+1):
             iter_num = iter_to_plot[i]
             plt.plot(
@@ -110,29 +114,22 @@ def PlotResults(title, params_to_opt, nresults, results, em_gt, ll_gt,
         plt.legend(ncol=2, prop={'size': 6})
         plt.gcf().suptitle(title)
 
-        for i, param in enumerate(params_to_opt):
-            if samp > param_size[param] - 1:
-                continue
+    for i, param in enumerate(params_to_opt):
+        for param_ind in range(param_size[param]):
             subplot_num = subplot_num + 1
-            ax = plt.subplot(gs[subplot_num//3, subplot_num % 3])
-
-            if n_samples > 1:
-                if param_size[param] > 1:
-                    suffix = f', DS {samp}'
-                else:
-                    suffix = ', shared'
-            else:
-                suffix = ''
+            ax = plt.subplot(gs[subplot_num//num_rows, subplot_num % num_rows])
+                
+            suffix = f', index {param_ind}'
             if param == 'F':
                 plt.plot(
-                    em_gt.grid.x_d, -np.log(em_gt.peq[samp]), color='black',
+                    em_gt.grid.x_d, -np.log(em_gt.peq[param_ind]), color='black',
                     linewidth=3, label='Ground-truth'
                 )
                 for i in range(nresults+1):
                     iter_num = iter_to_plot[i]
                     plt.plot(
                         em_gt.grid.x_d,
-                        -np.log(results['peq'][iter_num][samp, :]),
+                        -np.log(results['peq'][iter_num][param_ind, :]),
                         color=colors[i, :], linewidth=3,
                         label=f'Iteration {results["iter_num"][iter_num]}'
                     )
@@ -140,13 +137,13 @@ def PlotResults(title, params_to_opt, nresults, results, em_gt, ll_gt,
                 plt.xlabel(r'Latent state, $x$', fontsize=15)
             elif param == 'F0':
                 plt.plot(
-                    em_gt.grid.x_d, em_gt.p0[samp], color='black', linewidth=3,
+                    em_gt.grid.x_d, em_gt.p0[param_ind], color='black', linewidth=3,
                     label='Ground-truth'
                 )
                 for i in range(nresults+1):
                     iter_num = iter_to_plot[i]
                     plt.plot(
-                        em_gt.grid.x_d, results['p0'][iter_num][samp, :],
+                        em_gt.grid.x_d, results['p0'][iter_num][param_ind, :],
                         color=colors[i, :], linewidth=3,
                         label=f'Iteration {results["iter_num"][iter_num]}'
                     )
@@ -155,30 +152,29 @@ def PlotResults(title, params_to_opt, nresults, results, em_gt, ll_gt,
             elif param == 'D':
                 all_iters = results['iter_num']
                 plt.plot(
-                    all_iters, np.ones_like(all_iters) * em_gt.D[samp],
+                    all_iters, np.ones_like(all_iters) * em_gt.D[param_ind],
                     color='black', linewidth=3, label='Ground-truth'
                 )
                 plt.plot(
                     all_iters,
-                    [results['D'][i][samp] for i in range(len(results['D']))],
+                    [results['D'][i][param_ind] for i in range(len(results['D']))],
                     color=[0.5, 0.5, 0.5], linewidth=3
                 )
                 plt.ylabel(r'$D$' + suffix, fontsize=15)
                 plt.xlabel(r'Epoch number', fontsize=15)
             elif param in ['Fr', 'C']:
-                num_neurons = results['fr'][0].shape[2]
-                for neuron in range(num_neurons):
-                    plt.plot(
-                        em_gt.grid.x_d, em_gt.fr[samp,
-                                                 :, neuron], color='black',
+                # fr now has shape (num_fr, N) instead of (num_models, N, num_neurons)
+                # Get number of neurons from em_gt
+                
+                plt.plot(
+                        em_gt.grid.x_d, em_gt.fr[param_ind], color='black',
                         linewidth=3,
-                        label='Ground-truth' if neuron == 0 else None
+                        label='Ground-truth' 
                     )
                 for i in range(nresults+1):
                     iter_num = iter_to_plot[i]
-                    for neuron in range(num_neurons):
-                        plt.plot(em_gt.grid.x_d,
-                                 results['fr'][iter_num][samp, :, neuron],
+                    plt.plot(em_gt.grid.x_d,
+                                 results['fr'][iter_num][param_ind],
                                  color=colors[i, :], linewidth=3
                                  )
                 plt.ylabel(r'$fr(x)$' + suffix, fontsize=15)

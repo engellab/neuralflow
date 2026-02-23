@@ -39,7 +39,7 @@ class TestModelSelection(unittest.TestCase):
             ],
             grid=cls.grid,
         )
-        cls.num_neurons = cls.em.fr.shape[2]
+        cls.num_neurons = cls.em.num_neuron
 
         # Generate data for absorbing and reflecting modes
         cls.data = {bm: [] for bm in cls.boundary_modes}

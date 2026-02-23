@@ -44,7 +44,7 @@ class optimizer():
         if init_model.num_models != self.num_datasamples:
             raise ValueError(
                 f'Number of models ({init_model.num_models}) differs from the '
-                f'number of datasamples ({self.num_datasamples()}).'
+                f'number of datasamples ({self.num_datasamples}).'
             )
         if device == 'GPU' and not init_model.with_cuda:
             raise ValueError(
@@ -54,8 +54,9 @@ class optimizer():
         self.model = init_model
 
         # check that number of neurons is consistent in data and model
-        num_neuron = init_model.num_neuron
+        # num_neuron = init_model.num_neuron
         for ids, ds in enumerate(self.dataTR):
+            num_neuron = init_model._num_neurons_per_condition[ids]
             if ds.num_neuron != num_neuron:
                 raise ValueError(
                     f'Init model contains {num_neuron} neurons, while training'
@@ -63,6 +64,7 @@ class optimizer():
                 )
         if dataCV is not None:
             for ids, ds in enumerate(self.dataCV):
+                num_neuron = init_model._num_neurons_per_condition[ids]
                 if ds.num_neuron != num_neuron:
                     raise ValueError(
                         f'Init model contains {num_neuron} neurons, while val'
@@ -95,14 +97,13 @@ class optimizer():
         optimizer._check_save_options(save_options, opt_options['max_epochs'])
         self.save_options = save_options
 
-        # Find shared params, which are the same across all datasamples
+        # Map from optimization parameter names to model parameter names
         self.opt_model_map = {
             'F': 'peq', 'F0': 'p0', 'D': 'D', 'Fr': 'fr', 'C': 'fr'
         }
-        self.shared_params = [
-            k for k in opt_options['params_to_opt']
-            if self.model.params_size[self.opt_model_map[k]] == 1
-        ]
+        # shared_params is deprecated - no longer used
+        # Parameter sharing is now determined by condition_mapping
+        self.shared_params = []
 
         # Number of trials in each datasample
         self.num_trial = [
@@ -490,26 +491,15 @@ class adam_opt(optimizer):
         self.gradients_av, self.RMS_av = {}, {}
         for key in self.opt_options['params_to_opt']:
             if key == 'C':
-                gr_size = rms_size = (
-                    self.model.params_size['fr'], self.model.num_neuron
-                )
+                gr_size = (self.model.num_neuron,)
             elif key == 'D':
-                gr_size = rms_size = (self.model.params_size['D'],)
-            elif key == 'Fr':
-                gr_size = (
-                    self.model.params_size['fr'],
-                    self.model.grid.N,
-                    self.model.num_neuron
-                )
-                rms_size = (
-                    self.model.params_size['fr'], self.model.num_neuron
-                    )
+                gr_size = (self.model.params_size['D'],)
             else:
                 gr_size = (
                     self.model.params_size[self.opt_model_map[key]],
                     self.model.grid.N
                     )
-                rms_size = (self.model.params_size[self.opt_model_map[key]],)
+            rms_size = (self.model.params_size[self.opt_model_map[key]],)
 
             if self.device == 'CPU':
                 self.gradients_av[key] = np.zeros(gr_size, dtype='float64')

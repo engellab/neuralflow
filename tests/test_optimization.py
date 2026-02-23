@@ -132,6 +132,8 @@ class TestOptmization(unittest.TestCase):
         """ To test FR gradient, mock the adjust_firing_rate function to
         correctly initialize firing rate: if we are optimizing Fr, then change
         shape but preserve C. If we are optimizing C, change C and preserve Fr
+        
+        Note: fr now has shape (num_fr, N) instead of (N, num_neurons)
         """
         self_var.fr_av = [
             d.trial_average_fr() for d in self_var.optimizer.dataTR
@@ -144,13 +146,15 @@ class TestOptmization(unittest.TestCase):
             grid = self_var.optimizer.model.grid.cuda_var
         if param == 'Fr':
             # Make sure to preserve Ground-truth C, only change Fr
-            model.fr[0, :, 0] = firing_rate_models.linear(grid.x_d, 0, 10)
-            model.fr[0, :, 1] = firing_rate_models.linear(grid.x_d, 0, 110)
-            model.C[0] = model.fr[0][0, ...].copy()
+            # fr has shape (num_fr, N), so fr[0, :] is the first neuron's firing rate
+            model.fr[0, :] = firing_rate_models.linear(grid.x_d, 0, 10)
+            model.fr[1, :] = firing_rate_models.linear(grid.x_d, 0, 110)
+            model.C[0] = model.fr[0, 0].copy()
+            model.C[1] = model.fr[1, 0].copy()
         elif param == 'C':
             # scale by a constant to have the correct shape but wrong C
-            model.fr[0, :, 0] = model.fr[0, :, 0]*2
-            model.fr[0, :, 1] = model.fr[0, :, 1]/2
+            model.fr[0, :] = model.fr[0, :] * 2
+            model.fr[1, :] = model.fr[1, :] / 2
 
     def SimultaneousInferenceTesting(self, with_cuda):
         """Inference of all of the parameters together - like in real data

@@ -45,7 +45,6 @@ class SyntheticData:
         if boundary_mode not in implemented_bms:
             raise ValueError(f'Unknown boundary mode {boundary_mode}')
         self.boundary_mode = boundary_mode
-        self.num_neuron = model.num_neuron
         self.dt = dt
         self.record_trial_end = record_trial_end
 
@@ -113,16 +112,17 @@ class SyntheticData:
         given model defined by (peq,p0,D,firing_rate_model).
         """
         num_trial = len(time_epoch)
-
+        num_neuron = fr.shape[1]
+        
         # generate diffusion trajectories
         x, time_bins = self._generate_diffusion(peq, p0, D, time_epoch)
 
         # initialize data arrays
-        spikes = np.empty((self.num_neuron, num_trial), dtype=np.ndarray)
+        spikes = np.empty((num_neuron, num_trial), dtype=np.ndarray)
 
         # compute firing rates and spikes
         for iTrial in range(num_trial):
-            for iCell in range(self.num_neuron):
+            for iCell in range(num_neuron):
                 if fr_lambda is not None:
                     # Just evaluate firing rate at each x(t)
                     rt = fr_lambda[iCell](x[iTrial])

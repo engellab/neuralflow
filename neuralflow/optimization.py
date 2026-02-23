@@ -163,24 +163,59 @@ class Optimization:
         return results
 
     def _adjust_firing_rate(self):
-        """Adjust initial guess for firing rate to match the average rates from
-        data"""
+        """Adjust initial guess for firing rate to match the average rates from data.
+        
+        Handles overlapping neurons correctly: each fr model is scaled by the
+        weighted average of the scaling factors from all conditions that contain it,
+        where weights are the number of trials in each condition.
+        """
 
         fr_av = [d.trial_average_fr() for d in self.optimizer.dataTR]
         model = self.optimizer.model
+        num_trials = self.optimizer.num_trial
 
-        # Average rate is integral of fr(x) over peq
-        scaling = fr_av / np.sum(
-            (model.peq * model.grid.w_d)[..., np.newaxis] * model.fr, axis=1
-        )
-        if 'Fr' in self.optimizer.shared_params:
-            # If firing rates are shared, use sample-average scaling
-            scaling = np.mean(scaling, axis=0)
-            model.fr = model.fr * np.expand_dims(scaling, 0)
-            model.C[0] = model.fr[0, 0, ...].copy()
-        else:
-            model.fr = model.fr * np.expand_dims(scaling, 1)
-            model.C = model.fr[:, 0, ...].copy()
+        # First, compute scaling factor for each neuron in each condition
+        # scaling_per_condition[cond_idx][local_neuron_idx] = scaling factor
+        scaling_per_condition = []
+        for cond_idx in range(model.num_models):
+            peq_idx = model.condition_mapping['peq_indices'][cond_idx]
+            fr_indices = model.condition_mapping['fr_indices'][cond_idx]
+            
+            peq_cond = model.peq[peq_idx, :]
+            fr_cond = model.fr[fr_indices, :]
+            
+            # Average rate is integral of fr(x) over peq
+            scaling = fr_av[cond_idx] / np.sum(
+                peq_cond * model.grid.w_d * fr_cond, axis=1
+            )
+            scaling_per_condition.append(scaling)
+        
+        # Now compute weighted average scaling for each unique fr model
+        # weighted by the number of trials in each condition that uses it
+        num_fr = model.condition_mapping['num_fr']
+        weighted_scaling = np.ones(num_fr)
+        total_weights = np.zeros(num_fr)
+        
+        for cond_idx in range(model.num_models):
+            fr_indices = model.condition_mapping['fr_indices'][cond_idx]
+            scaling = scaling_per_condition[cond_idx]
+            weight = num_trials[cond_idx]
+            
+            for local_idx, fr_idx in enumerate(fr_indices):
+                weighted_scaling[fr_idx] += scaling[local_idx] * weight
+                total_weights[fr_idx] += weight
+        
+        # Compute final scaling (avoid division by zero)
+        final_scaling = np.where(total_weights > 0, 
+                                  weighted_scaling / total_weights, 
+                                  1.0)
+        
+        # Apply scaling to all fr models
+        model.fr = model.fr * final_scaling[:, np.newaxis]
+        
+        # Update C values (fr at xbegin, index 0)
+        model.C = model.fr[:, 0].copy()
+        
         if self.device == 'GPU':
             model.cuda_var.fr = self.lib.asarray(model.fr, dtype='float64')
             model.cuda_var.C = self.lib.asarray(model.C, dtype='float64')
@@ -345,30 +380,25 @@ class Optimization:
 
                 # Update the parameters
                 for param in opt_params:
-                    # index of the current param
-                    param_num = min(
-                        cur_samp,
-                        optimizer.model.params_size[
-                            optimizer.opt_model_map[param]] - 1
+                    # Get the parameter index from condition_mapping
+                    indices = optimizer.model.get_param_indices(cur_samp)
+                    if param == 'F':
+                        param_num = indices['peq_idx']
+                    elif param == 'F0':
+                        param_num = indices['p0_idx']
+                    elif param == 'D':
+                        param_num = indices['D_idx']
+                    elif param == 'Fr' or param == 'C':
+                        # For Fr and C, param_num is the first fr index for this condition
+                        param_num = indices['fr_indices']
+                    else:
+                        param_num = 0
+                    
+                    gd_update = self._update_rule(
+                        gradients, param, param_num
                     )
-                    if param in self.optimizer.shared_params:
-                        cur_iter = iIter
-                    else:
-                        cur_iter = iter_per_samp[cur_samp]
-                    if (
-                        (param == 'C' or param == 'D') and
-                        iEpoch in ls_opts[f'{param}_opt']['epoch_schedule'] and
-                        cur_iter in
-                        ls_opts[f'{param}_opt']['iter_schedule'][param_num]
-                    ):
-                        # Line search update
-                        self._update_params_ls(param, cur_samp, param_num)
-                    else:
-                        gd_update = self._update_rule(
-                            gradients, param, param_num
-                        )
-                        # Gradient-based update
-                        self._update_param_gd(param, gd_update, param_num)
+                    # Gradient-based update - pass cur_samp for Fr to get fr_indices
+                    self._update_param_gd(param, gd_update, param_num, cur_samp)
 
             # Update loglik
             ll_index = i + self.new_sim
@@ -386,6 +416,18 @@ class Optimization:
 
                 # Validation loglik
                 self.compute_val_loglik(cur_samp, ll_index)
+
+            # Line search for C and D - once per epoch if in schedule
+            for param in ['C', 'D']:
+                if param in opt_params and iEpoch in ls_opts[f'{param}_opt']['epoch_schedule']:
+                    # Apply line search for each condition
+                    for cur_samp in range(num_samples):
+                        indices = optimizer.model.get_param_indices(cur_samp)
+                        if param == 'D':
+                            param_num = indices['D_idx']
+                        else:
+                            param_num = indices['fr_indices']
+                        self._update_params_ls(param, cur_samp, param_num)
 
             # Save model
             if iEpoch == save_opts['schedule'][next_save]:
@@ -510,20 +552,17 @@ class Optimization:
             if key == 'iter_num':
                 save_res['results'][key] = self.results[key][..., start: end]
             elif key.startswith('loglik'):
-                save_res['result'][key] = self.results[key][...,
-                                                            start_ll: end_ll]
+                save_res['results'][key] = self.results[key][..., start_ll: end_ll]
             elif key == 'D':
-                save_res['result'][key] = self.results[key][..., start: end]
+                save_res['results'][key] = self.results[key][..., start: end]
             else:
                 if self.device == 'GPU':
-                    save_res['result'][key] = []
-                    for d in save_res['result'][key][start: end]:
-                        save_res['result'][key].append(self.lib.asnumpy(d))
+                    save_res['results'][key] = []
+                    for d in self.results[key][start: end]:
+                        save_res['results'][key].append(self.lib.asnumpy(d))
                 else:
-                    save_res['result'][key] = (
-                        save_res['result'][key][start: end]
-                    )
-                save_res['result'][key] = np.array(save_res['result'][key])
+                    save_res['results'][key] = self.results[key][start: end]
+                save_res['results'][key] = np.array(save_res['results'][key])
 
         fullname = os.path.join(
             self.optimizer.save_options['path'],
@@ -541,7 +580,7 @@ class Optimization:
             # Update running average
             self.optimizer.gradients_av[param][model_num] = (
                 lr['beta1'] * self.optimizer.gradients_av[param][model_num] +
-                (1 - lr['beta1']) * gradients[param]
+                (1 - lr['beta1']) * gradients[param].T
             )
             # Update RMS prop
             if param != 'C' and param != 'D':
@@ -560,10 +599,13 @@ class Optimization:
             # Update epoch counter
             self.optimizer.adam_counter[param][model_num] += 1
 
+            numerator_scaling = (
+                1 - lr['beta1']**self.optimizer.adam_counter[param][model_num]
+                )
+            if param=='Fr':
+                numerator_scaling = numerator_scaling[:,np.newaxis]
             numerator = (
-                self.optimizer.gradients_av[param][model_num] /
-                (1 - lr['beta1']**self.optimizer.adam_counter[param][model_num]
-                 )
+                self.optimizer.gradients_av[param][model_num] / numerator_scaling
             )
             denominator = (
                 self.lib.sqrt(self.optimizer.RMS_av[param][model_num] /
@@ -571,14 +613,29 @@ class Optimization:
                                self.optimizer.adam_counter[param][model_num])
                               ) + lr['epsilon']
             )
+            if param=='Fr':
+                denominator = denominator[:,np.newaxis]
             gd_update = lr['alpha'] * numerator / denominator
         else:
             # GD update rule
             gd_update = lr[param] * gradients[param]
+            if param=='Fr':
+                gd_update = gd_update.T
         return gd_update
 
-    def _update_param_gd(self, param, gd_update, model_num):
+    def _update_param_gd(self, param, gd_update, model_num, cond_num=None):
         """Update a parameter
+        
+        Parameters
+        ----------
+        param : str
+            Parameter name ('F', 'F0', 'D', 'Fr', 'C')
+        gd_update : array
+            Gradient update
+        model_num : int
+            Parameter model index (for the parameter arrays)
+        cond_num : int, optional
+            Condition number (needed for Fr to get fr_indices)
         """
         model = self.optimizer.model
         if self.device == 'CPU':
@@ -603,35 +660,43 @@ class Optimization:
             # Update peq
             model_params.peq[model_num] = model.peq_from_force(F, self.device)
 
-            # Update rho0, since the denominator chaged
+            # Update rho0 for all conditions that use this peq
+            # rho0 = p0 / sqrt(peq), so when peq changes, rho0 changes proportionally to 1/sqrt(peq)
             if model.non_equilibrium:
-                # This is numerically stable update
                 ratio = self.lib.sqrt(peq_old / model_params.peq[model_num])
-                if model.params_size['peq'] >= model.params_size['p0']:
-                    model_params.rho0[model_num] = (
-                        model_params.rho0[model_num] * ratio
-                    )
-                else:
-                    # If p0 are non-shared and peq is shared, need to update
-                    # all of the rho0s.
-                    for i in range(model.params_size['rho0']):
-                        model_params.rho0[i] = model_params.rho0[i] * ratio
+                # Find all conditions (rho0 indices) that use this peq
+                peq_indices = model.condition_mapping['peq_indices']
+                for rho_idx, peq_idx in enumerate(peq_indices):
+                    if peq_idx == model_num:
+                        model_params.rho0[rho_idx] = model_params.rho0[rho_idx] * ratio
         elif param == 'Fr':
             # Compute Fr from fr, update Fr, compute new fr
-            Fr = model.Fr_from_fr(model_params.fr[model_num], self.device)
-            Fr = Fr - gd_update
-            fr = model.fr_from_Fr(Fr, model_params.C[model_num], self.device)
-            model_params.fr[model_num] = fr
+            # gd_update has shape (N, num_neurons) for this condition
+            # Need to update all fr rows for the neurons in this condition
+            # Use cond_num to get the fr_indices for this condition
+            cond = cond_num if cond_num is not None else model_num
+            fr_indices = model.condition_mapping['fr_indices'][cond]
+            for local_idx, fr_idx in enumerate(fr_indices):
+                fr_row = model_params.fr[fr_idx]  # shape (N,)
+                Fr = model.Fr_from_fr(fr_row, self.device)
+                Fr = Fr - gd_update[local_idx]
+                fr = model.fr_from_Fr(Fr, model_params.C[fr_idx], self.device)
+                model_params.fr[fr_idx] = fr
         elif param == 'C':
             # Compute new C, divide fr by old C and multiply by new C
-            fr = model_params.fr[model_num]
-            fr = fr / model_params.C[model_num]
-            # Do not replace with -=, as there is an issue with __iadd__
-            model_params.C[model_num] = model_params.C[model_num] - gd_update
-            model_params.C[model_num] = self.lib.maximum(
-                model_params.C[model_num], 0)
-            fr = fr * model_params.C[model_num]
-            model_params.fr[model_num] = fr
+            # C gradient is an array with one value per neuron
+            # Use cond_num to get the fr_indices for this condition
+            cond = cond_num if cond_num is not None else model_num
+            fr_indices = model.condition_mapping['fr_indices'][cond]
+            for local_idx, fr_idx in enumerate(fr_indices):
+                fr = model_params.fr[fr_idx]
+                old_C = model_params.C[fr_idx]
+                fr = fr / old_C
+                new_C = old_C - gd_update[local_idx]
+                new_C = self.lib.maximum(new_C, 0)
+                fr = fr * new_C
+                model_params.C[fr_idx] = new_C
+                model_params.fr[fr_idx] = fr
         elif param == 'D':
             # Direct update
             model_params.D[model_num] = model_params.D[model_num] - gd_update
@@ -639,17 +704,19 @@ class Optimization:
                 model_params.D[model_num], MINIMUM_D)
         elif param == 'F0':
             # Compute p0 from F0, update F0, compute new p0 and rho0
+            # rho0 = p0 / sqrt(peq), so when p0 changes, rho0 changes proportionally to p0
             F0 = model.force_from_peq(model_params.p0[model_num], self.device)
             F0 = F0 - gd_update
             p0 = model.peq_from_force(F0, self.device)
             ratio = p0 / model_params.p0[model_num]
-            if model.params_size['rho0'] == model.params_size['p0']:
-                model_params.rho0[model_num] = (
-                    model_params.rho0[model_num] * ratio
-                )
-            else:
-                for i in range(model.params_size['rho0']):
-                    model_params.rho0[i] = model_params.rho0[i] * ratio
+            
+            # Update rho0 for all conditions that use this p0
+            # Find all conditions (rho0 indices) that use this p0
+            p0_indices = model.condition_mapping['p0_indices']
+            for rho_idx, p0_idx in enumerate(p0_indices):
+                if p0_idx == model_num:
+                    model_params.rho0[rho_idx] = model_params.rho0[rho_idx] * ratio
+            
             model_params.p0[model_num] = p0
 
     def _update_params_ls(self, param, model_num, param_num):
@@ -665,14 +732,16 @@ class Optimization:
 
         if param == 'C':
             Cmin = lib.minimum(
-                lib.min(model_params.fr[param_num], axis=0), _cmin)
+                lib.min(model_params.fr[param_num], axis=1), _cmin)
             Cmax = lib.maximum(
-                lib.max(model_params.fr[param_num], axis=0), _cmax)
+                lib.max(model_params.fr[param_num], axis=1), _cmax)
+            
             if self.device == 'GPU':
                 Cmin, Cmax = lib.asnumpy(Cmin), lib.asnumpy(Cmax)
                 C_init = lib.asnumpy(model_params.C[param_num])
             else:
                 C_init = model_params.C[param_num]
+            
             # Optimize
             minC = minimize(
                 lambda chi: self.line_search_score_C(
@@ -697,7 +766,7 @@ class Optimization:
             model_params.C[param_num] = lib.asarray(minC.x)
             model_params.fr[param_num] = (
                 model_params.fr[param_num] /
-                model_params.fr[param_num, 0] * model_params.C[param_num]
+                model_params.fr[param_num, 0, np.newaxis] * model_params.C[param_num, np.newaxis]
             )
         elif param == 'D':
             lowerDbound = _dmin
@@ -729,7 +798,7 @@ class Optimization:
                 else:
                     lowerDbound += 0.5 * _dmin
             if minD.message == 'ABNORMAL_TERMINATION_IN_LNSRCH':
-                self.loger.warning('D line search did not succeed')
+                logger.warning('D line search did not succeed')
                 model_params.D = Dinit
             else:
                 model_params.D[param_num] = minD.x[0]
@@ -748,8 +817,8 @@ class Optimization:
                             chi):
         """ Line search function for optimization
         """
-        fr[param_num] = fr[param_num] / fr[param_num, 0]
-        fr[param_num] = fr[param_num] * self.lib.asarray(chi)
+        fr[param_num] = fr[param_num] / fr[param_num, 0, np.newaxis]
+        fr[param_num] = fr[param_num] * self.lib.asarray(chi[:,np.newaxis])
         return self.optimizer.gradient.get_grad_data(
             dataTR, model, model_num, 'loglik'
         ).item()
