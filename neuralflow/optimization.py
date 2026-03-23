@@ -602,15 +602,21 @@ class Optimization:
             numerator_scaling = (
                 1 - lr['beta1']**self.optimizer.adam_counter[param][model_num]
                 )
-            if param=='Fr':
+            if param == 'Fr':
                 numerator_scaling = numerator_scaling[:,np.newaxis]
+            if self.device == 'GPU' and isinstance(numerator_scaling, np.ndarray):
+                numerator_scaling = self.lib.asarray(numerator_scaling, dtype='float64')
             numerator = (
                 self.optimizer.gradients_av[param][model_num] / numerator_scaling
             )
+            denominator_scaling = (
+                1 - lr['beta2']**self.optimizer.adam_counter[param][model_num]
+            )
+            if self.device == 'GPU' and isinstance(denominator_scaling, np.ndarray):
+                denominator_scaling = self.lib.asarray(denominator_scaling, dtype='float64')
             denominator = (
                 self.lib.sqrt(self.optimizer.RMS_av[param][model_num] /
-                              (1 - lr['beta2'] **
-                               self.optimizer.adam_counter[param][model_num])
+                                 denominator_scaling
                               ) + lr['epsilon']
             )
             if param=='Fr':

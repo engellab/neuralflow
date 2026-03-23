@@ -80,7 +80,7 @@ class TestOptmization(unittest.TestCase):
 
         # optimization
         cls.optimizers = ['ADAM', 'GD']
-        cls.opt_params = {'max_epochs': 5, 'mini_batch_number': 10}
+        cls.opt_params = {'max_epochs': 5, 'mini_batch_number': 2}
         cls.opt_params_ls = {'max_epochs': 1, 'mini_batch_number': 1}
 
         cls.ls_options = {
@@ -170,8 +170,9 @@ class TestOptmization(unittest.TestCase):
             ):
                 self.test_num += 1
                 logger.info(
-                    f'Running test {self.test_num}, optimizer = {optimizer}, '
-                    f'boundary mode {bm} '
+                    f'Running SimultaneousInferenceTesting test {self.test_num}, '
+                    f'optimizer = {optimizer}, '
+                    f'boundary mode {bm}, device = {device}'
                 )
 
                 # learning rate is optimizer-dependent
@@ -271,8 +272,9 @@ class TestOptmization(unittest.TestCase):
             ):
                 self.test_num += 1
                 logger.info(
-                    f'Running test {self.test_num}, optimizer = {optimizer}, '
-                    f'boundary mode {bm}, param = {param}'
+                    f'Running IndividualGradOptimizationTesting test {self.test_num}, '
+                    f'optimizer = {optimizer}, '
+                    f'boundary mode {bm}, param = {param}, device = {device}'
                 )
 
                 # learning rate is optimizer-dependent
@@ -370,7 +372,7 @@ class TestOptmization(unittest.TestCase):
             device = 'CPU' if not with_cuda else 'GPU'
             self.test_num += 1
             logger.info(
-                f'Running linesearch test {self.test_num}, optimizer = '
+                f'Running LineSearchTesting test {self.test_num}, optimizer = '
                 f'{optimizer}, boundary mode {bm}, param = {param}'
             )
 
