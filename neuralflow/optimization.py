@@ -406,8 +406,12 @@ class Optimization:
                 if optimizer.iter_in_epoch[cur_samp] == 1:
                     # loglik is already computed, but before the parameters
                     # were updated
+                    # FIX (GPU): wrap with float() because on GPU
+                    # gradients['loglik'] is a 0-d CuPy array, and modern
+                    # CuPy refuses implicit conversion when assigning into
+                    # a NumPy results array (raises TypeError).
                     self.results['logliks'][cur_samp, ll_index - 1] = (
-                        gradients['loglik']
+                        float(gradients['loglik'])
                     )
                 else:
                     # For batched optimization, need to compute likelihood
@@ -489,7 +493,9 @@ class Optimization:
     def compute_tr_loglik(self, cur_samp, epoch):
         """ Compute training negative loglik
         """
-        self.results['logliks'][cur_samp, epoch] = (
+        # FIX (GPU): on GPU get_grad_data returns a 0-d CuPy array; cast to
+        # float so it can be stored in the NumPy `logliks` results array.
+        self.results['logliks'][cur_samp, epoch] = float(
             self.optimizer.gradient.get_grad_data(
                 self.optimizer.get_dataTR(cur_samp),
                 self.optimizer.model,
@@ -502,7 +508,8 @@ class Optimization:
         """ Compute validation negative loglik
         """
         if self.optimizer.dataCV is not None:
-            self.results['logliksCV'][cur_samp, epoch] = (
+            # FIX (GPU): same as compute_tr_loglik above.
+            self.results['logliksCV'][cur_samp, epoch] = float(
                 self.optimizer.gradient.get_grad_data(
                     self.optimizer.get_dataCV(cur_samp),
                     self.optimizer.model,
