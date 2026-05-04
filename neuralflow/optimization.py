@@ -714,14 +714,17 @@ class Optimization:
             F0 = F0 - gd_update
             p0 = model.peq_from_force(F0, self.device)
             ratio = p0 / model_params.p0[model_num]
-            
-            # Update rho0 for all conditions that use this p0
-            # Find all conditions (rho0 indices) that use this p0
-            p0_indices = model.condition_mapping['p0_indices']
-            for rho_idx, p0_idx in enumerate(p0_indices):
+
+            # FIX (rho0 indexing): same root cause as in 'F' branch above —
+            # rho0 is indexed by unique (peq_idx, p0_idx) pairs, not by
+            # condition. Iterate over pair_to_rho0_idx and update every rho0
+            # entry whose p0 component matches the p0 model being optimized.
+            for (_peq_idx, p0_idx), rho_idx in model.pair_to_rho0_idx.items():
                 if p0_idx == model_num:
-                    model_params.rho0[rho_idx] = model_params.rho0[rho_idx] * ratio
-            
+                    model_params.rho0[rho_idx] = (
+                        model_params.rho0[rho_idx] * ratio
+                    )
+
             model_params.p0[model_num] = p0
 
     def _update_params_ls(self, param, model_num, param_num):
