@@ -660,15 +660,20 @@ class Optimization:
             # Update peq
             model_params.peq[model_num] = model.peq_from_force(F, self.device)
 
-            # Update rho0 for all conditions that use this peq
-            # rho0 = p0 / sqrt(peq), so when peq changes, rho0 changes proportionally to 1/sqrt(peq)
+            # FIX (rho0 indexing): rho0 has one entry per unique (peq_idx, p0_idx)
+            # pair, NOT per condition. The upstream code iterated over
+            # `peq_indices` (which is condition-indexed, length = num_conditions)
+            # and used the loop position as a rho0 index, causing IndexError
+            # whenever num_conditions > num_rho0. Iterate over the canonical
+            # pair_to_rho0_idx dict so each rho0 entry is touched exactly once.
             if model.non_equilibrium:
                 ratio = self.lib.sqrt(peq_old / model_params.peq[model_num])
-                # Find all conditions (rho0 indices) that use this peq
-                peq_indices = model.condition_mapping['peq_indices']
-                for rho_idx, peq_idx in enumerate(peq_indices):
+                for (peq_idx, _p0_idx), rho_idx in model.pair_to_rho0_idx.items():
                     if peq_idx == model_num:
-                        model_params.rho0[rho_idx] = model_params.rho0[rho_idx] * ratio
+                        model_params.rho0[rho_idx] = (
+                            model_params.rho0[rho_idx] * ratio
+                        )
+
         elif param == 'Fr':
             # Compute Fr from fr, update Fr, compute new fr
             # gd_update has shape (N, num_neurons) for this condition
