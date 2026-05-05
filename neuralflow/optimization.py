@@ -606,19 +606,27 @@ class Optimization:
             # Update epoch counter
             self.optimizer.adam_counter[param][model_num] += 1
 
-            numerator_scaling = (
+            # FIX (GPU): the bias-correction factors are computed from
+            # `adam_counter`, which is host-side (NumPy/int), so on GPU
+            # they end up as NumPy while `gradients_av` and `RMS_av` are
+            # CuPy. Modern CuPy refuses to divide a device array by a
+            # host array, raising "Unsupported type <class 'numpy.ndarray'>".
+            # Coerce both scaling factors to the active array lib.
+            numerator_scaling = self.lib.asarray(
                 1 - lr['beta1']**self.optimizer.adam_counter[param][model_num]
-                )
+            )
             if param=='Fr':
                 numerator_scaling = numerator_scaling[:,np.newaxis]
             numerator = (
                 self.optimizer.gradients_av[param][model_num] / numerator_scaling
             )
+            denominator_scaling = self.lib.asarray(
+                1 - lr['beta2']**self.optimizer.adam_counter[param][model_num]
+            )
             denominator = (
-                self.lib.sqrt(self.optimizer.RMS_av[param][model_num] /
-                              (1 - lr['beta2'] **
-                               self.optimizer.adam_counter[param][model_num])
-                              ) + lr['epsilon']
+                self.lib.sqrt(
+                    self.optimizer.RMS_av[param][model_num] / denominator_scaling
+                ) + lr['epsilon']
             )
             if param=='Fr':
                 denominator = denominator[:,np.newaxis]
