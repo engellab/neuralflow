@@ -477,10 +477,13 @@ class Grads:
 
         # precalculate exp(-lambda*dt), which is the matrix that propagates
         # probability density with a Fokker-Planck equation for each ISI dt
-        prop_mat = self.cuda.cp.empty(
-            (S_Total, Nv), dtype=peq.dtype, order='C')
-        self.cuda.cp.outer(seq, EV_solution["lQd"], out=prop_mat)
-        prop_mat = self.cuda.cp.exp(-prop_mat)
+        # FIX (GPU): replaced `cp.outer(seq, lQd, out=prop_mat)` because not
+        # all CuPy versions support the `out=` argument on `cp.outer`. The
+        # explicit broadcast `seq[:, None] * lQd[None, :]` is robust across
+        # versions and produces an identical (S_Total, Nv) result.
+        prop_mat = self.cuda.cp.exp(
+            -seq[:, None] * EV_solution["lQd"][None, :]
+        )
 
         # Define the matrix of absorption operator
         if with_absorption:
