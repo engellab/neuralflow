@@ -406,8 +406,12 @@ class Optimization:
                 if optimizer.iter_in_epoch[cur_samp] == 1:
                     # loglik is already computed, but before the parameters
                     # were updated
+                    # FIX (GPU): wrap with float() because on GPU
+                    # gradients['loglik'] is a 0-d CuPy array, and modern
+                    # CuPy refuses implicit conversion when assigning into
+                    # a NumPy results array (raises TypeError).
                     self.results['logliks'][cur_samp, ll_index - 1] = (
-                        gradients['loglik']
+                        float(gradients['loglik'])
                     )
                 else:
                     # For batched optimization, need to compute likelihood
@@ -489,7 +493,9 @@ class Optimization:
     def compute_tr_loglik(self, cur_samp, epoch):
         """ Compute training negative loglik
         """
-        self.results['logliks'][cur_samp, epoch] = (
+        # FIX (GPU): on GPU get_grad_data returns a 0-d CuPy array; cast to
+        # float so it can be stored in the NumPy `logliks` results array.
+        self.results['logliks'][cur_samp, epoch] = float(
             self.optimizer.gradient.get_grad_data(
                 self.optimizer.get_dataTR(cur_samp),
                 self.optimizer.model,
@@ -502,7 +508,8 @@ class Optimization:
         """ Compute validation negative loglik
         """
         if self.optimizer.dataCV is not None:
-            self.results['logliksCV'][cur_samp, epoch] = (
+            # FIX (GPU): same as compute_tr_loglik above.
+            self.results['logliksCV'][cur_samp, epoch] = float(
                 self.optimizer.gradient.get_grad_data(
                     self.optimizer.get_dataCV(cur_samp),
                     self.optimizer.model,
@@ -599,19 +606,27 @@ class Optimization:
             # Update epoch counter
             self.optimizer.adam_counter[param][model_num] += 1
 
-            numerator_scaling = (
+            # FIX (GPU): the bias-correction factors are computed from
+            # `adam_counter`, which is host-side (NumPy/int), so on GPU
+            # they end up as NumPy while `gradients_av` and `RMS_av` are
+            # CuPy. Modern CuPy refuses to divide a device array by a
+            # host array, raising "Unsupported type <class 'numpy.ndarray'>".
+            # Coerce both scaling factors to the active array lib.
+            numerator_scaling = self.lib.asarray(
                 1 - lr['beta1']**self.optimizer.adam_counter[param][model_num]
-                )
+            )
             if param=='Fr':
                 numerator_scaling = numerator_scaling[:,np.newaxis]
             numerator = (
                 self.optimizer.gradients_av[param][model_num] / numerator_scaling
             )
+            denominator_scaling = self.lib.asarray(
+                1 - lr['beta2']**self.optimizer.adam_counter[param][model_num]
+            )
             denominator = (
-                self.lib.sqrt(self.optimizer.RMS_av[param][model_num] /
-                              (1 - lr['beta2'] **
-                               self.optimizer.adam_counter[param][model_num])
-                              ) + lr['epsilon']
+                self.lib.sqrt(
+                    self.optimizer.RMS_av[param][model_num] / denominator_scaling
+                ) + lr['epsilon']
             )
             if param=='Fr':
                 denominator = denominator[:,np.newaxis]
@@ -660,15 +675,20 @@ class Optimization:
             # Update peq
             model_params.peq[model_num] = model.peq_from_force(F, self.device)
 
-            # Update rho0 for all conditions that use this peq
-            # rho0 = p0 / sqrt(peq), so when peq changes, rho0 changes proportionally to 1/sqrt(peq)
+            # FIX (rho0 indexing): rho0 has one entry per unique (peq_idx, p0_idx)
+            # pair, NOT per condition. The upstream code iterated over
+            # `peq_indices` (which is condition-indexed, length = num_conditions)
+            # and used the loop position as a rho0 index, causing IndexError
+            # whenever num_conditions > num_rho0. Iterate over the canonical
+            # pair_to_rho0_idx dict so each rho0 entry is touched exactly once.
             if model.non_equilibrium:
                 ratio = self.lib.sqrt(peq_old / model_params.peq[model_num])
-                # Find all conditions (rho0 indices) that use this peq
-                peq_indices = model.condition_mapping['peq_indices']
-                for rho_idx, peq_idx in enumerate(peq_indices):
+                for (peq_idx, _p0_idx), rho_idx in model.pair_to_rho0_idx.items():
                     if peq_idx == model_num:
-                        model_params.rho0[rho_idx] = model_params.rho0[rho_idx] * ratio
+                        model_params.rho0[rho_idx] = (
+                            model_params.rho0[rho_idx] * ratio
+                        )
+
         elif param == 'Fr':
             # Compute Fr from fr, update Fr, compute new fr
             # gd_update has shape (N, num_neurons) for this condition
@@ -709,14 +729,17 @@ class Optimization:
             F0 = F0 - gd_update
             p0 = model.peq_from_force(F0, self.device)
             ratio = p0 / model_params.p0[model_num]
-            
-            # Update rho0 for all conditions that use this p0
-            # Find all conditions (rho0 indices) that use this p0
-            p0_indices = model.condition_mapping['p0_indices']
-            for rho_idx, p0_idx in enumerate(p0_indices):
+
+            # FIX (rho0 indexing): same root cause as in 'F' branch above —
+            # rho0 is indexed by unique (peq_idx, p0_idx) pairs, not by
+            # condition. Iterate over pair_to_rho0_idx and update every rho0
+            # entry whose p0 component matches the p0 model being optimized.
+            for (_peq_idx, p0_idx), rho_idx in model.pair_to_rho0_idx.items():
                 if p0_idx == model_num:
-                    model_params.rho0[rho_idx] = model_params.rho0[rho_idx] * ratio
-            
+                    model_params.rho0[rho_idx] = (
+                        model_params.rho0[rho_idx] * ratio
+                    )
+
             model_params.p0[model_num] = p0
 
     def _update_params_ls(self, param, model_num, param_num):
